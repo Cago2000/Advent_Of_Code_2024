@@ -12,7 +12,7 @@ def main():
             if antenna1 != "." and antenna1 != "#":
                 for y2, line2 in enumerate(map_list):
                     for x2, antenna2 in enumerate(line2):
-                        if y2 == y1 or x2 == x1: continue
+                        if y2 == y1 and x2 == x1: continue
                         if antenna2 == antenna1:
                             antenna_pair = {
                                 "a1": (x1, y1),
@@ -28,7 +28,6 @@ def main():
 
     for antenna_id in antenna_pairs:
         antenna_pair = antenna_pairs[antenna_id]
-        print(antenna_pair)
         ax1, ay1 = antenna_pair["a1"]
         dx, dy = antenna_pair["distance"]
         idx, idy = dx*-1, dy*-1
@@ -37,7 +36,6 @@ def main():
             antinode_map[antinode1_y][antinode1_x] = "#"
             antinode1_x += idx
             antinode1_y += idy
-
         ax2, ay2 = antenna_pair["a2"]
         dx, dy = antenna_pair["distance"]
         idx, idy = dx, dy
@@ -46,16 +44,8 @@ def main():
             antinode_map[antinode2_y][antinode2_x] = "#"
             antinode2_x += idx
             antinode2_y += idy
-
-    for antenna_id in antenna_pairs:
-        antenna_pair = antenna_pairs[antenna_id]
-        ax1, ay1 = antenna_pair["a1"]
-        ax2, ay2 = antenna_pair["a2"]
-        if 0 <= ax1 < width and 0 <= ay1 < height:
-            antinode_map[ay1][ax1] = "#"
-        if 0 <= ax2 < width and 0 <= ay2 < height:
-            antinode_map[ay1][ax1] = "#"
-
+        antinode_map[ay1][ax1] = "#"
+        antinode_map[ay1][ax1] = "#"
 
     antinode_count = 0
     for line in antinode_map:
