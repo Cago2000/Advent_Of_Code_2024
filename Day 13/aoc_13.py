@@ -3,14 +3,20 @@ from sympy import symbols, Eq, linsolve
 
 def main():
     claw_machine_data = load_file('claw_machines.txt')
-    claw_machines = get_dict_from_data(claw_machine_data)
-    for cm_id, claw_machine in claw_machines.items():
-        solution = solve_equations(claw_machine["A"], claw_machine["B"], claw_machine["Prize"])
-        claw_machines[cm_id]["Solution"] = solution
-    total_tokens = calculate_tokens(claw_machines)
-    print(total_tokens)
-    for _, cm in claw_machines.items():
-        print(cm)
+    claw_machines_part1 = get_dict_from_data(claw_machine_data)
+    for cm_id, claw_machine in claw_machines_part1.items():
+        solution = solve_equations_part_one(claw_machine["A"], claw_machine["B"], claw_machine["Prize"])
+        claw_machines_part1[cm_id]["Solution"] = solution
+    total_tokens_part1 = calculate_tokens(claw_machines_part1)
+
+    claw_machines_part2 = claw_machines_part1
+    for cm_id, claw_machine in claw_machines_part2.items():
+        solution = solve_equations_part_two(claw_machine["A"], claw_machine["B"], claw_machine["Prize"])
+        claw_machines_part2[cm_id]["Solution"] = solution
+    total_tokens_part2 = calculate_tokens(claw_machines_part2)
+
+    print(f'Part One: {total_tokens_part1}')
+    print(f'Part Two: {total_tokens_part2}')
 
 def load_file(path: str):
 
@@ -45,7 +51,7 @@ def get_dict_from_data(data: list[str]):
         i+=3
     return claw_machines
 
-def solve_equations(a_button: tuple[int, int], b_button: tuple[int, int], prize: tuple[int, int]):
+def solve_equations_part_one(a_button: tuple[int, int], b_button: tuple[int, int], prize: tuple[int, int]):
     a, b = symbols('a b', integer=True)
     ax, ay = a_button
     bx, by = b_button
@@ -56,13 +62,40 @@ def solve_equations(a_button: tuple[int, int], b_button: tuple[int, int], prize:
 
     solution = list(linsolve((a_equation, b_equation), (a, b)))
     a, b = solution[0]
+    if not a.is_integer or not b.is_integer:
+        return 0, 0
+
     a, b = int(a), int(b)
     if a < 0 or a > 100 or b < 0 or b > 100:
         a, b = (0, 0)
-    print(f'A: {a_button}, B: {b_button}')
-    print(f'A: {ax} * {a} + {bx} * {b} = {x_prize}')
-    print(f'B: {ay} * {a} + {by} * {b} = {y_prize}')
-    print(f'Solution; {a, b}')
+    print(f'A: {a_button}, B: {b_button}, Prize: {x_prize}, {y_prize}')
+    print(f'A: {ax} * {a} + {bx} * {b} = {ax*a+bx*b}')
+    print(f'B: {ay} * {a} + {by} * {b} = {ay*a+by*b}')
+    print(f'Solution; {a, b}', end="\n\n")
+    return a, b
+
+def solve_equations_part_two(a_button: tuple[int, int], b_button: tuple[int, int], prize: tuple[int, int]):
+    a, b = symbols('a b', integer=True)
+    ax, ay = a_button
+    bx, by = b_button
+    x_prize, y_prize = prize
+    x_prize, y_prize = x_prize+10000000000000, y_prize+10000000000000
+
+    a_equation = Eq(ax * a + bx * b, x_prize)
+    b_equation = Eq(ay * a + by * b, y_prize)
+
+    solution = list(linsolve((a_equation, b_equation), (a, b)))
+    a, b = solution[0]
+    if not a.is_integer or not b.is_integer:
+        return 0, 0
+
+    a, b = int(a), int(b)
+    if a < 0 or b < 0:
+        a, b = (0, 0)
+    print(f'A: {a_button}, B: {b_button}, Prize: {x_prize}, {y_prize}')
+    print(f'A: {ax} * {a} + {bx} * {b} = {ax*a+bx*b}')
+    print(f'B: {ay} * {a} + {by} * {b} = {ay*a+by*b}')
+    print(f'Solution; {a, b}', end="\n\n")
     return a, b
 
 def calculate_tokens(claw_machines):
@@ -71,7 +104,6 @@ def calculate_tokens(claw_machines):
         a, b = claw_machine["Solution"]
         total_tokens += a*3+b*1
     return total_tokens
-
 
 if __name__ == "__main__":
     main()
