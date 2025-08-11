@@ -22,15 +22,7 @@ class Direction(Enum):
 
 def main():
     warehouse = load_file("warehouse.txt")
-    print_warehouse(warehouse)
     boxes, robots = get_boxes_data(warehouse)
-
-    for _, box in boxes.items():
-        print(box)
-    print()
-    for _, robot in robots.items():
-        print(robot)
-    print()
 
     robot_moves = load_file("robot_moves.txt")
     for row in robot_moves:
@@ -56,8 +48,7 @@ def make_move(move: Direction, robot: Robot, warehouse: list[list[str]]):
                 shift += 1
             if warehouse[robot_y][robot_x - shift] == "#":
                 return warehouse
-            if shift != 1:
-                warehouse[robot_y][robot_x - shift], warehouse[robot_y][robot_x-1] = warehouse[robot_y][robot_x-1], warehouse[robot_y][robot_x - shift]
+            warehouse[robot_y][robot_x - shift], warehouse[robot_y][robot_x-1] = warehouse[robot_y][robot_x-1], warehouse[robot_y][robot_x - shift]
             warehouse[robot_y][robot_x], warehouse[robot_y][robot_x-1] = warehouse[robot_y][robot_x-1], warehouse[robot_y][robot_x]
             robot.coordinate = (robot_x-1, robot_y)
             return warehouse
@@ -66,8 +57,7 @@ def make_move(move: Direction, robot: Robot, warehouse: list[list[str]]):
                 shift += 1
             if warehouse[robot_y][robot_x + shift] == "#":
                 return warehouse
-            if shift != 1:
-                warehouse[robot_y][robot_x + shift], warehouse[robot_y][robot_x + 1] = warehouse[robot_y][robot_x + 1], warehouse[robot_y][robot_x + shift]
+            warehouse[robot_y][robot_x + shift], warehouse[robot_y][robot_x + 1] = warehouse[robot_y][robot_x + 1], warehouse[robot_y][robot_x + shift]
             warehouse[robot_y][robot_x], warehouse[robot_y][robot_x + 1] = warehouse[robot_y][robot_x + 1], warehouse[robot_y][robot_x]
             robot.coordinate = (robot_x+1, robot_y)
             return warehouse
@@ -76,8 +66,7 @@ def make_move(move: Direction, robot: Robot, warehouse: list[list[str]]):
                 shift += 1
             if warehouse[robot_y - shift][robot_x] == "#":
                 return warehouse
-            if shift != 1:
-                warehouse[robot_y - shift][robot_x], warehouse[robot_y - 1][robot_x] = warehouse[robot_y - 1][robot_x], warehouse[robot_y - shift][robot_x]
+            warehouse[robot_y - shift][robot_x], warehouse[robot_y - 1][robot_x] = warehouse[robot_y - 1][robot_x], warehouse[robot_y - shift][robot_x]
             warehouse[robot_y][robot_x], warehouse[robot_y - 1][robot_x] = warehouse[robot_y - 1][robot_x], warehouse[robot_y][robot_x]
             robot.coordinate = (robot_x, robot_y-1)
             return warehouse
@@ -86,8 +75,7 @@ def make_move(move: Direction, robot: Robot, warehouse: list[list[str]]):
                 shift += 1
             if warehouse[robot_y + shift][robot_x] == "#":
                 return warehouse
-            if shift != 1:
-                warehouse[robot_y + shift][robot_x], warehouse[robot_y + 1][robot_x] = warehouse[robot_y + 1][robot_x], warehouse[robot_y + shift][robot_x]
+            warehouse[robot_y + shift][robot_x], warehouse[robot_y + 1][robot_x] = warehouse[robot_y + 1][robot_x], warehouse[robot_y + shift][robot_x]
             warehouse[robot_y][robot_x], warehouse[robot_y + 1][robot_x] = warehouse[robot_y + 1][robot_x], warehouse[robot_y][robot_x]
             robot.coordinate = (robot_x, robot_y+1)
             return warehouse
