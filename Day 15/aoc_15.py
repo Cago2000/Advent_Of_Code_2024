@@ -40,45 +40,27 @@ def calculate_sum_of_gps_coordinates(boxes: dict[int, Box]):
 
 
 def make_move(move: Direction, robot: Robot, warehouse: list[list[str]]):
+    direction_offsets = {
+        Direction.LEFT:  (-1, 0),
+        Direction.RIGHT: (1, 0),
+        Direction.UP:    (0, -1),
+        Direction.DOWN:  (0, 1),
+    }
+    dx, dy = direction_offsets[move]
     robot_x, robot_y = robot.coordinate
-    shift = 1
-    match move:
-        case Direction.LEFT:
-            while warehouse[robot_y][robot_x - shift] == "O":
-                shift += 1
-            if warehouse[robot_y][robot_x - shift] == "#":
-                return warehouse
-            warehouse[robot_y][robot_x - shift], warehouse[robot_y][robot_x-1] = warehouse[robot_y][robot_x-1], warehouse[robot_y][robot_x - shift]
-            warehouse[robot_y][robot_x], warehouse[robot_y][robot_x-1] = warehouse[robot_y][robot_x-1], warehouse[robot_y][robot_x]
-            robot.coordinate = (robot_x-1, robot_y)
-            return warehouse
-        case Direction.RIGHT:
-            while warehouse[robot_y][robot_x + shift] == "O":
-                shift += 1
-            if warehouse[robot_y][robot_x + shift] == "#":
-                return warehouse
-            warehouse[robot_y][robot_x + shift], warehouse[robot_y][robot_x + 1] = warehouse[robot_y][robot_x + 1], warehouse[robot_y][robot_x + shift]
-            warehouse[robot_y][robot_x], warehouse[robot_y][robot_x + 1] = warehouse[robot_y][robot_x + 1], warehouse[robot_y][robot_x]
-            robot.coordinate = (robot_x+1, robot_y)
-            return warehouse
-        case Direction.UP:
-            while warehouse[robot_y - shift][robot_x] == "O":
-                shift += 1
-            if warehouse[robot_y - shift][robot_x] == "#":
-                return warehouse
-            warehouse[robot_y - shift][robot_x], warehouse[robot_y - 1][robot_x] = warehouse[robot_y - 1][robot_x], warehouse[robot_y - shift][robot_x]
-            warehouse[robot_y][robot_x], warehouse[robot_y - 1][robot_x] = warehouse[robot_y - 1][robot_x], warehouse[robot_y][robot_x]
-            robot.coordinate = (robot_x, robot_y-1)
-            return warehouse
-        case Direction.DOWN:
-            while warehouse[robot_y + shift][robot_x] == "O":
-                shift += 1
-            if warehouse[robot_y + shift][robot_x] == "#":
-                return warehouse
-            warehouse[robot_y + shift][robot_x], warehouse[robot_y + 1][robot_x] = warehouse[robot_y + 1][robot_x], warehouse[robot_y + shift][robot_x]
-            warehouse[robot_y][robot_x], warehouse[robot_y + 1][robot_x] = warehouse[robot_y + 1][robot_x], warehouse[robot_y][robot_x]
-            robot.coordinate = (robot_x, robot_y+1)
-            return warehouse
+    distance = 1
+
+    while warehouse[robot_y + dy * distance][robot_x + dx * distance] == "O":
+        distance += 1
+    if warehouse[robot_y + dy * distance][robot_x + dx * distance] == "#":
+        return warehouse
+
+    object_x, object_y = robot_x + dx * distance, robot_y + dy * distance
+    adjacent_x, adjacent_y = robot_x + dx, robot_y + dy
+    warehouse[object_y][object_x], warehouse[adjacent_y][adjacent_x] = warehouse[adjacent_y][adjacent_x], warehouse[object_y][object_x]
+    warehouse[robot_y][robot_x], warehouse[adjacent_y][adjacent_x] = warehouse[adjacent_y][adjacent_x], warehouse[robot_y][robot_x]
+    robot.coordinate = adjacent_x, adjacent_y
+    return warehouse
 
 
 def get_boxes_data(warehouse: list[list[str]]):
