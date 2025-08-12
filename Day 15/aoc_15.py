@@ -35,15 +35,6 @@ class Entity_Type(Enum):
 
 
 @dataclass
-class Move:
-    direction: Direction
-
-@dataclass
-class Moves:
-    moves: list[Move]
-
-
-@dataclass
 class Entity:
     id: int
     entity_type: Entity_Type
@@ -88,6 +79,7 @@ class Warehouse:
         for row in rows:
             line = "".join(row)
             lines.append(line)
+        lines.append("")
         return "\n".join(lines)
 
     def get_robot(self):
@@ -144,7 +136,7 @@ def main():
     moves_data = load_file("small_robot_moves_example.txt")
     moves = create_moves(moves_data)
     print(warehouse)
-    warehouse.can_move(warehouse.get_robot(), moves.moves[3].direction.get_direction_vector())
+    warehouse.can_move(warehouse.get_robot(), moves[3].get_direction_vector())
     print(warehouse)
 
 def create_moves(moves_data:list[list[str]]):
@@ -152,9 +144,8 @@ def create_moves(moves_data:list[list[str]]):
     for row in moves_data:
         for move_str in row:
             direction = Direction(move_str)
-            move = Move(direction)
-            moves.append(move)
-    return Moves(moves)
+            moves.append(direction)
+    return moves
 
 
 def create_warehouse(warehouse_data: list[list[str]]):
