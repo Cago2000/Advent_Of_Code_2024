@@ -8,8 +8,6 @@ class Coordinate:
 
     def __add__(self, other: 'Coordinate') -> 'Coordinate':
         return Coordinate(self.x + other.x, self.y + other.y)
-    def __mul__(self, other: 'Coordinate') -> 'Coordinate':
-        return Coordinate(self.x * other.x, self.y * other.y)
 
 class Direction(Enum):
     LEFT = "<"
@@ -52,7 +50,7 @@ class Entity:
     coordinates: list[Coordinate]
     gps_coordinates: list[int]
 
-    def get_object_symbol(self):
+    def get_symbol(self):
         match self.entity_type:
             case Entity_Type.ROBOT: return "@"
             case Entity_Type.BOX: return "O"
@@ -60,6 +58,8 @@ class Entity:
             case Entity_Type.WALL: return "#"
             case Entity_Type.FLOOR: return "."
             case _: return "."
+
+
 
 @dataclass
 class Warehouse:
@@ -76,7 +76,7 @@ class Warehouse:
                 if entity is None:
                     x += 1
                     continue
-                symbol = entity.get_object_symbol()
+                symbol = entity.get_symbol()
                 if symbol == "[]":
                     rows[y][x] = symbol[0]
                     rows[y][x+1] = symbol[1]
@@ -105,40 +105,47 @@ class Warehouse:
 
     def can_move(self, entity: Entity, dir_vector: Coordinate):
         entity_position = entity.coordinates[0]
-        next_entity = self.find_entity_by_position(entity_position+dir_vector)
-        if next_entity.entity_type == Entity_Type.BOX:
-            return self.can_move(next_entity, dir_vector)
+        next_entity = self.find_entity_by_position(entity_position + dir_vector)
         if next_entity.entity_type == Entity_Type.WALL:
             return False
+        if next_entity.entity_type == Entity_Type.BOX:
+            return self.can_move(next_entity, dir_vector)  # check if box can move
         if next_entity.entity_type == Entity_Type.FLOOR:
             return True
         return False
 
-    def make_move(self, move: Move):
-        print(move.direction, end=", ")
+
+    def make_move(self, move):
         robot = self.get_robot()
         dir_vector = move.direction.get_direction_vector()
         if self.can_move(robot, dir_vector):
-            print("Robot can move!")
+            print("Robot can movee!")
         else:
             print("Robot can't move!")
 
+    def swap_by_id(self, entity_id1: int, entity_id2: int):
+        index1, index2 = self.get_index_of_entity(entity_id1), self.get_index_of_entity(entity_id2)
+        self.entities[index2].coordinates, self.entities[index1].coordinates = self.entities[index1].coordinates, self.entities[index2].coordinates
 
+    def swap_by_position(self, pos1: Coordinate, pos2: Coordinate):
+        entity1, entity2 = self.find_entity_by_position(pos1), self.find_entity_by_position(pos2)
+        self.swap_by_id(entity1.id, entity2.id)
 
+    def get_index_of_entity(self, entity_id: int):
+        for i, entity in enumerate(self.entities):
+            if entity.id == entity_id:
+                return i
+        return None
 
 
 def main():
     warehouse_data = load_file("small_warehouse_example.txt")
     warehouse = create_warehouse(warehouse_data)
-    print(warehouse)
     moves_data = load_file("small_robot_moves_example.txt")
     moves = create_moves(moves_data)
-    warehouse.make_move(moves.moves[0])
-    warehouse.make_move(moves.moves[3])
-    warehouse.make_move(moves.moves[1])
-    warehouse.make_move(moves.moves[6])
-    for entity in warehouse.entities:
-        print(entity)
+    print(warehouse)
+    warehouse.can_move(warehouse.get_robot(), moves.moves[3].direction.get_direction_vector())
+    print(warehouse)
 
 def create_moves(moves_data:list[list[str]]):
     moves = []
