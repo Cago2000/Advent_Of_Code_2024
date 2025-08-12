@@ -8,6 +8,8 @@ class Coordinate:
 
     def __add__(self, other: 'Coordinate') -> 'Coordinate':
         return Coordinate(self.x + other.x, self.y + other.y)
+    def __mul__(self, other: 'Coordinate') -> 'Coordinate':
+        return Coordinate(self.x * other.x, self.y * other.y)
 
 class Direction(Enum):
     LEFT = "<"
@@ -26,8 +28,9 @@ class Direction(Enum):
 class Entity_Type(Enum):
     ROBOT = 0
     BOX = 1
-    WALL = 2
-    FLOOR = 3
+    WIDE_BOX = 2
+    WALL = 3
+    FLOOR = 4
 
     def __str__(self):
         return self.name.capitalize()
@@ -44,6 +47,7 @@ class Moves:
 
 @dataclass
 class Entity:
+    id: int
     entity_type: Entity_Type
     coordinates: list[Coordinate]
     gps_coordinates: list[int]
@@ -51,9 +55,11 @@ class Entity:
     def get_object_symbol(self):
         match self.entity_type:
             case Entity_Type.ROBOT: return "@"
-            case Entity_Type.BOX: return "[]" if len(self.coordinates) > 1 else "O"
+            case Entity_Type.BOX: return "O"
+            case Entity_Type.WIDE_BOX: return "[]"
             case Entity_Type.WALL: return "#"
             case Entity_Type.FLOOR: return "."
+            case _: return "."
 
 @dataclass
 class Warehouse:
@@ -62,17 +68,27 @@ class Warehouse:
     entities: list[Entity]
 
     def __str__(self):
-        rows, current_row = [], []
-        for entity in self.entities:
-            symbol = entity.get_object_symbol()
-            current_row.append(symbol)
-            last_entity_coordinate = entity.coordinates[-1]
-            if last_entity_coordinate.x == self.width - 1:
-                rows.append("".join(current_row))
-                current_row = []
-        if current_row:
-            rows.append("".join(current_row))
-        return "\n".join(rows)
+        rows = [["0"] * self.width for _ in range(self.height)]
+        for y, row in enumerate(rows):
+            x = 0
+            while x < len(row):
+                entity = self.find_entity_by_position(Coordinate(x, y))
+                if entity is None:
+                    x += 1
+                    continue
+                symbol = entity.get_object_symbol()
+                if symbol == "[]":
+                    rows[y][x] = symbol[0]
+                    rows[y][x+1] = symbol[1]
+                    x+=2
+                    continue
+                rows[y][x] = symbol
+                x += 1
+        lines = []
+        for row in rows:
+            line = "".join(row)
+            lines.append(line)
+        return "\n".join(lines)
 
     def get_robot(self):
         for entity in self.entities:
@@ -90,19 +106,22 @@ class Warehouse:
     def can_move(self, entity: Entity, dir_vector: Coordinate):
         entity_position = entity.coordinates[0]
         next_entity = self.find_entity_by_position(entity_position+dir_vector)
-        if next_entity.entity_type == Entity_Type.WALL: return False
-        if next_entity.entity_type == Entity_Type.FLOOR:
-
-            return True
         if next_entity.entity_type == Entity_Type.BOX:
             return self.can_move(next_entity, dir_vector)
+        if next_entity.entity_type == Entity_Type.WALL:
+            return False
+        if next_entity.entity_type == Entity_Type.FLOOR:
+            return True
         return False
 
     def make_move(self, move: Move):
+        print(move.direction, end=", ")
         robot = self.get_robot()
         dir_vector = move.direction.get_direction_vector()
         if self.can_move(robot, dir_vector):
-            print("Robot moved!")
+            print("Robot can move!")
+        else:
+            print("Robot can't move!")
 
 
 
@@ -112,14 +131,14 @@ def main():
     warehouse_data = load_file("small_warehouse_example.txt")
     warehouse = create_warehouse(warehouse_data)
     print(warehouse)
-    robot = warehouse.get_robot()
-
     moves_data = load_file("small_robot_moves_example.txt")
     moves = create_moves(moves_data)
+    warehouse.make_move(moves.moves[0])
     warehouse.make_move(moves.moves[3])
-
-
-
+    warehouse.make_move(moves.moves[1])
+    warehouse.make_move(moves.moves[6])
+    for entity in warehouse.entities:
+        print(entity)
 
 def create_moves(moves_data:list[list[str]]):
     moves = []
@@ -131,34 +150,36 @@ def create_moves(moves_data:list[list[str]]):
     return Moves(moves)
 
 
-
 def create_warehouse(warehouse_data: list[list[str]]):
     width, height = len(warehouse_data[0]), len(warehouse_data)
     entities = []
+    entity_id = 0
     for y, row in enumerate(warehouse_data):
         x = 0
         while x < len(row):
             gps_coordinates = [y * 100 + x]
             coordinates = [Coordinate(x, y)]
             if row[x] == "@":
-                e = Entity(Entity_Type.ROBOT, coordinates, gps_coordinates)
+                e = Entity(entity_id, Entity_Type.ROBOT, coordinates, gps_coordinates)
                 entities.append(e)
+                robot = e
             if row[x] == "[":
                 x += 1
                 coordinates.append(Coordinate(x, y))
                 gps_coordinates.append(y * 100 + x)
-                e = Entity(Entity_Type.BOX, coordinates, gps_coordinates)
+                e = Entity(entity_id, Entity_Type.WIDE_BOX, coordinates, gps_coordinates)
                 entities.append(e)
             if row[x] == "O":
-                e = Entity(Entity_Type.BOX, coordinates, gps_coordinates)
+                e = Entity(entity_id, Entity_Type.BOX, coordinates, gps_coordinates)
                 entities.append(e)
             if row[x] == "#":
-                e = Entity(Entity_Type.WALL, coordinates, gps_coordinates)
+                e = Entity(entity_id, Entity_Type.WALL, coordinates, gps_coordinates)
                 entities.append(e)
             if row[x] == ".":
-                e = Entity(Entity_Type.FLOOR, coordinates, gps_coordinates)
+                e = Entity(entity_id, Entity_Type.FLOOR, coordinates, gps_coordinates)
                 entities.append(e)
             x += 1
+            entity_id += 1
     warehouse = Warehouse(width, height, entities)
     return warehouse
 
