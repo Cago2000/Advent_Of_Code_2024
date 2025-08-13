@@ -94,7 +94,6 @@ class Warehouse:
     def get_action_stack(self, entity: Entity, dir_vector: Coordinate, actions: Stack):
         entity_position = entity.coordinates[0]
         next_entity = self.get_entity_by_position(entity_position + dir_vector)
-        print(next_entity)
         if next_entity.entity_type == Entity_Type.WALL:
             return Stack()
         if next_entity.entity_type == Entity_Type.BOX:
@@ -128,7 +127,7 @@ class Warehouse:
 
     def get_index_of_entity_by_position(self, pos: Coordinate):
         for i, entity in enumerate(self.entities):
-            if entity.coordinates[0] == pos:
+            if pos in entity.coordinates:
                 return i
         return None
 
