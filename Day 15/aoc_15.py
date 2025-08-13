@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
+from stack import Stack
 
 @dataclass
 class Coordinate:
@@ -8,6 +9,10 @@ class Coordinate:
 
     def __add__(self, other: 'Coordinate') -> 'Coordinate':
         return Coordinate(self.x + other.x, self.y + other.y)
+
+@dataclass
+class Action:
+    coordinates: tuple[Coordinate, Coordinate]
 
 class Direction(Enum):
     LEFT = "<"
@@ -36,10 +41,8 @@ class Entity_Type(Enum):
 
 @dataclass
 class Entity:
-    id: int
     entity_type: Entity_Type
     coordinates: list[Coordinate]
-    gps_coordinates: list[int]
 
     def get_symbol(self):
         match self.entity_type:
@@ -63,7 +66,7 @@ class Warehouse:
         for y, row in enumerate(rows):
             x = 0
             while x < len(row):
-                entity = self.find_entity_by_position(Coordinate(x, y))
+                entity = self.get_entity_by_position(Coordinate(x, y))
                 if entity is None:
                     x += 1
                     continue
@@ -88,56 +91,70 @@ class Warehouse:
                 return entity
         return None
 
-    def find_entity_by_position(self, position: Coordinate):
-        for entity in self.entities:
-            for coordinate in entity.coordinates:
-                if coordinate == position:
-                    return entity
-        return None
-
-    def can_move(self, entity: Entity, dir_vector: Coordinate):
+    def get_action_stack(self, entity: Entity, dir_vector: Coordinate, actions: Stack):
         entity_position = entity.coordinates[0]
-        next_entity = self.find_entity_by_position(entity_position + dir_vector)
+        next_entity = self.get_entity_by_position(entity_position + dir_vector)
+        print(next_entity)
         if next_entity.entity_type == Entity_Type.WALL:
-            return False
+            return Stack()
         if next_entity.entity_type == Entity_Type.BOX:
-            return self.can_move(next_entity, dir_vector)  # check if box can move
+            action = Action((entity.coordinates[0], next_entity.coordinates[0]))
+            actions.push(action)
+            return self.get_action_stack(next_entity, dir_vector, actions)
+        if next_entity.entity_type == Entity_Type.WIDE_BOX:
+            action = Action((entity.coordinates[0], next_entity.coordinates[0]))
+            actions.push(action)
+            return self.get_action_stack(next_entity, dir_vector, actions)
         if next_entity.entity_type == Entity_Type.FLOOR:
-            return True
-        return False
+            action = Action((entity.coordinates[0], next_entity.coordinates[0]))
+            actions.push(action)
+            return actions
+        return actions
 
-
-    def make_move(self, move):
-        robot = self.get_robot()
-        dir_vector = move.direction.get_direction_vector()
-        if self.can_move(robot, dir_vector):
-            print("Robot can movee!")
-        else:
-            print("Robot can't move!")
-
-    def swap_by_id(self, entity_id1: int, entity_id2: int):
-        index1, index2 = self.get_index_of_entity(entity_id1), self.get_index_of_entity(entity_id2)
-        self.entities[index2].coordinates, self.entities[index1].coordinates = self.entities[index1].coordinates, self.entities[index2].coordinates
+    def perform_action(self, action: Action):
+        print(action)
+        first, second = action.coordinates
+        self.swap_by_position(first, second)
 
     def swap_by_position(self, pos1: Coordinate, pos2: Coordinate):
-        entity1, entity2 = self.find_entity_by_position(pos1), self.find_entity_by_position(pos2)
-        self.swap_by_id(entity1.id, entity2.id)
+        index1, index2 = self.get_index_of_entity_by_position(pos1), self.get_index_of_entity_by_position(pos2)
+        self.entities[index2].coordinates, self.entities[index1].coordinates = self.entities[index1].coordinates, self.entities[index2].coordinates
 
-    def get_index_of_entity(self, entity_id: int):
+    def get_entity_by_position(self, position: Coordinate):
+        for entity in self.entities:
+            if position in entity.coordinates:
+                return entity
+        return None
+
+    def get_index_of_entity_by_position(self, pos: Coordinate):
         for i, entity in enumerate(self.entities):
-            if entity.id == entity_id:
+            if entity.coordinates[0] == pos:
                 return i
         return None
 
+    def calculate_gps_coordinate_sum(self):
+        gps_coordinate_sum = 0
+        for entity in self.entities:
+            if entity.entity_type == Entity_Type.BOX:
+                x, y = entity.coordinates[0].x, entity.coordinates[0].y
+                gps_coordinate_sum += y*100+x
+        return gps_coordinate_sum
 
 def main():
-    warehouse_data = load_file("small_warehouse_example.txt")
+    warehouse_data = load_file("warehouse_example.txt")
     warehouse = create_warehouse(warehouse_data)
-    moves_data = load_file("small_robot_moves_example.txt")
+    moves_data = load_file("robot_moves_example.txt")
     moves = create_moves(moves_data)
     print(warehouse)
-    warehouse.can_move(warehouse.get_robot(), moves[3].get_direction_vector())
-    print(warehouse)
+    for move in moves:
+        print(move)
+        actions = warehouse.get_action_stack(warehouse.get_robot(), move.get_direction_vector(), Stack())
+        for i in range(len(actions.stack)):
+            warehouse.perform_action(actions.pop())
+        print(warehouse)
+    gps_coordinate_sum = warehouse.calculate_gps_coordinate_sum()
+    print(gps_coordinate_sum)
+
 
 def create_moves(moves_data:list[list[str]]):
     moves = []
@@ -155,26 +172,23 @@ def create_warehouse(warehouse_data: list[list[str]]):
     for y, row in enumerate(warehouse_data):
         x = 0
         while x < len(row):
-            gps_coordinates = [y * 100 + x]
             coordinates = [Coordinate(x, y)]
             if row[x] == "@":
-                e = Entity(entity_id, Entity_Type.ROBOT, coordinates, gps_coordinates)
+                e = Entity(Entity_Type.ROBOT, coordinates)
                 entities.append(e)
-                robot = e
             if row[x] == "[":
                 x += 1
                 coordinates.append(Coordinate(x, y))
-                gps_coordinates.append(y * 100 + x)
-                e = Entity(entity_id, Entity_Type.WIDE_BOX, coordinates, gps_coordinates)
+                e = Entity(Entity_Type.WIDE_BOX, coordinates)
                 entities.append(e)
             if row[x] == "O":
-                e = Entity(entity_id, Entity_Type.BOX, coordinates, gps_coordinates)
+                e = Entity(Entity_Type.BOX, coordinates)
                 entities.append(e)
             if row[x] == "#":
-                e = Entity(entity_id, Entity_Type.WALL, coordinates, gps_coordinates)
+                e = Entity(Entity_Type.WALL, coordinates)
                 entities.append(e)
             if row[x] == ".":
-                e = Entity(entity_id, Entity_Type.FLOOR, coordinates, gps_coordinates)
+                e = Entity(Entity_Type.FLOOR, coordinates)
                 entities.append(e)
             x += 1
             entity_id += 1
